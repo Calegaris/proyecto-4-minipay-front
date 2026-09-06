@@ -58,20 +58,20 @@ export default function ContactsPage() {
 
     const payload: {
       aliasCustomName: string;
-      email?: string;
-      cvu?: string;
-      alias?: string;
+      contactEmail?: string;
+      contactCvu?: string;
+      contactAlias?: string;
     } = {
       aliasCustomName: aliasCustomName.trim(),
     };
 
     const trimmed = identifier.trim();
     if (trimmed.includes('@')) {
-      payload.email = trimmed;
+      payload.contactEmail = trimmed;
     } else if (/^\d{22}$/.test(trimmed)) {
-      payload.cvu = trimmed;
+      payload.contactCvu = trimmed;
     } else {
-      payload.alias = trimmed;
+      payload.contactAlias = trimmed;
     }
 
     try {

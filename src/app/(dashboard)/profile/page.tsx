@@ -65,10 +65,17 @@ export default function ProfilePage() {
 
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (newPassword.length < 6) {
-      toast.error('La nueva contraseña debe tener al menos 6 caracteres');
+    if (newPassword.length < 8) {
+      toast.error('La nueva contraseña debe tener al menos 8 caracteres');
       return;
     }
+
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    if (!passwordRegex.test(newPassword)) {
+      toast.error('La contraseña debe incluir al menos una mayúscula, minúscula, número y carácter especial (@$!%*?&)');
+      return;
+    }
+
     if (newPassword !== confirmPassword) {
       toast.error('Las contraseñas no coinciden');
       return;

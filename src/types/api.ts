@@ -146,9 +146,15 @@ export interface QrGenerateResponse {
 }
 
 // --- AUTH PAYLOADS & RESPONSES ---
-export interface AuthResponse {
-  user: User;
-  wallet: Wallet;
+export interface AuthTokens {
   accessToken: string;
   refreshToken: string;
+}
+
+export interface AuthResponse {
+  user: User;
+  wallet?: Wallet;
+  accessToken?: string;
+  refreshToken?: string;
+  tokens?: AuthTokens;
 }

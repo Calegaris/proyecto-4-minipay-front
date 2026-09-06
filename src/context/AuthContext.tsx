@@ -87,13 +87,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         password,
       });
 
-      localStorage.setItem('accessToken', data.accessToken);
-      localStorage.setItem('refreshToken', data.refreshToken);
-      localStorage.setItem('user', JSON.stringify(data.user));
-      localStorage.setItem('wallet', JSON.stringify(data.wallet));
+      const accessToken = data.accessToken || data.tokens?.accessToken;
+      const refreshToken = data.refreshToken || data.tokens?.refreshToken;
+      const resolvedWallet = data.wallet || data.user?.wallet;
+
+      if (accessToken) localStorage.setItem('accessToken', accessToken);
+      if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
+      if (data.user) localStorage.setItem('user', JSON.stringify(data.user));
+      if (resolvedWallet) localStorage.setItem('wallet', JSON.stringify(resolvedWallet));
 
       setUser(data.user);
-      setWallet(data.wallet);
+      if (resolvedWallet) setWallet(resolvedWallet);
 
       toast.success(`¡Bienvenido de vuelta, ${data.user.name}!`);
       router.push('/dashboard');
@@ -116,13 +120,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         password,
       });
 
-      localStorage.setItem('accessToken', data.accessToken);
-      localStorage.setItem('refreshToken', data.refreshToken);
-      localStorage.setItem('user', JSON.stringify(data.user));
-      localStorage.setItem('wallet', JSON.stringify(data.wallet));
+      const accessToken = data.accessToken || data.tokens?.accessToken;
+      const refreshToken = data.refreshToken || data.tokens?.refreshToken;
+      const resolvedWallet = data.wallet || data.user?.wallet;
+
+      if (accessToken) localStorage.setItem('accessToken', accessToken);
+      if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
+      if (data.user) localStorage.setItem('user', JSON.stringify(data.user));
+      if (resolvedWallet) localStorage.setItem('wallet', JSON.stringify(resolvedWallet));
 
       setUser(data.user);
-      setWallet(data.wallet);
+      if (resolvedWallet) setWallet(resolvedWallet);
 
       toast.success(`¡Cuenta creada con éxito! Bienvenido a MiniPay.`);
       router.push('/dashboard');
@@ -202,7 +210,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         wallet,
         isLoading,
-        isAuthenticated: !!user && !!localStorage.getItem('accessToken'),
+        isAuthenticated: !!user && (typeof window !== 'undefined' ? !!localStorage.getItem('accessToken') : true),
         login,
         register,
         logout,

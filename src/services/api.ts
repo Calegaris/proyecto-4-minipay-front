@@ -13,7 +13,7 @@ export const api = axios.create({
 api.interceptors.request.use((config) => {
   if (typeof window !== 'undefined') {
     const token = localStorage.getItem('accessToken');
-    if (token && config.headers) {
+    if (token && token !== 'undefined' && token !== 'null' && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
   }
@@ -25,18 +25,29 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+    // Evitar loop infinito en rutas de auth
+    if (originalRequest?.url?.includes('/auth/login') || originalRequest?.url?.includes('/auth/register')) {
+      return Promise.reject(error);
+    }
+
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
       if (typeof window !== 'undefined') {
         const refreshToken = localStorage.getItem('refreshToken');
-        if (refreshToken) {
+        if (refreshToken && refreshToken !== 'undefined' && refreshToken !== 'null') {
           try {
             const { data } = await axios.post(`${API_BASE_URL}/auth/refresh`, {
               refreshToken,
             });
-            localStorage.setItem('accessToken', data.accessToken);
-            localStorage.setItem('refreshToken', data.refreshToken);
-            originalRequest.headers.Authorization = `Bearer ${data.accessToken}`;
+            const newAccess = data.accessToken || data.tokens?.accessToken;
+            const newRefresh = data.refreshToken || data.tokens?.refreshToken;
+
+            if (newAccess) localStorage.setItem('accessToken', newAccess);
+            if (newRefresh) localStorage.setItem('refreshToken', newRefresh);
+
+            if (newAccess && originalRequest.headers) {
+              originalRequest.headers.Authorization = `Bearer ${newAccess}`;
+            }
             return api(originalRequest);
           } catch {
             localStorage.removeItem('accessToken');
@@ -46,6 +57,10 @@ api.interceptors.response.use(
             window.location.href = '/login';
           }
         } else {
+          localStorage.removeItem('accessToken');
+          localStorage.removeItem('refreshToken');
+          localStorage.removeItem('user');
+          localStorage.removeItem('wallet');
           window.location.href = '/login';
         }
       }

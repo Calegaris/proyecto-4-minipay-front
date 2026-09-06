@@ -19,8 +19,14 @@ export default function RegisterPage() {
     e.preventDefault();
     if (!name || !email || !password) return;
 
-    if (password.length < 6) {
-      toast.error('La contraseña debe tener al menos 6 caracteres');
+    if (password.length < 8) {
+      toast.error('La contraseña debe tener al menos 8 caracteres');
+      return;
+    }
+
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    if (!passwordRegex.test(password)) {
+      toast.error('La contraseña debe incluir al menos una mayúscula, minúscula, número y carácter especial (@$!%*?&)');
       return;
     }
 
@@ -93,7 +99,7 @@ export default function RegisterPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              placeholder="Mínimo 6 caracteres"
+              placeholder="Mínimo 8 caracteres (ej. Pass123!)"
               className="w-full pl-11 pr-11 py-3 bg-slate-900/90 border border-slate-700/80 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
             />
             <button
