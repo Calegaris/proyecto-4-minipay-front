@@ -91,7 +91,8 @@ export default function DashboardPage() {
 
   const handleDeposit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const amountNum = parseFloat(depositAmount);
+    const cleaned = depositAmount.toString().replace(/\./g, '').replace(',', '.');
+    const amountNum = parseFloat(cleaned);
     if (isNaN(amountNum) || amountNum <= 0) {
       toast.error('Ingresa un monto válido');
       return;
@@ -124,16 +125,31 @@ export default function DashboardPage() {
   };
 
   const formattedBalance = wallet
-    ? Number(wallet.balance).toLocaleString('es-AR', {
+    ? Number(wallet.balance || 0).toLocaleString('es-AR', {
         style: 'currency',
         currency: 'ARS',
       })
     : '$ 0,00';
 
-  const chartData = stats?.spendingByCategory?.length
-    ? stats.spendingByCategory.map((item) => ({
+  const spendingList =
+    stats?.monthlySummary?.spendingByCategory ||
+    stats?.spendingByCategory ||
+    [];
+
+  const totalExpenses =
+    stats?.monthlySummary?.totalTransferred ??
+    stats?.expenses ??
+    0;
+
+  const netSavings =
+    stats?.monthlySummary?.netCashFlow ??
+    stats?.netSavings ??
+    0;
+
+  const chartData = spendingList.length
+    ? spendingList.map((item) => ({
         name: CATEGORY_LABELS[item.category] || item.category,
-        value: Number(item.total),
+        value: Number(item.total) || 0,
         color: CATEGORY_COLORS[item.category] || '#64748b',
       }))
     : [];
@@ -242,7 +258,7 @@ export default function DashboardPage() {
                 </div>
                 <div>
                   <h2 className="text-base font-bold text-white">Cuenta Remunerada</h2>
-                  <span className="text-xs text-emerald-400 font-semibold">35.0% TNA Anual</span>
+                  <span className="text-xs text-emerald-400 font-semibold">{yieldData?.tna || '35.0%'} TNA Anual</span>
                 </div>
               </div>
               <span className="px-2.5 py-1 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
@@ -257,10 +273,10 @@ export default function DashboardPage() {
             <div className="grid grid-cols-2 gap-4 mb-6">
               <div className="bg-slate-900/90 border border-slate-800/80 rounded-2xl p-4">
                 <span className="text-[11px] text-slate-400 uppercase tracking-wider block mb-1">
-                  Ganado Hoy
+                  Ganado / Estimado Hoy
                 </span>
                 <span className="text-xl font-bold text-emerald-400">
-                  +${yieldData ? Number(yieldData.todayEarnedYield).toLocaleString('es-AR', { minimumFractionDigits: 2 }) : '0,00'}
+                  +${Number(yieldData?.estimatedDailyYield ?? yieldData?.todayEarnedYield ?? 0).toLocaleString('es-AR', { minimumFractionDigits: 2 })}
                 </span>
               </div>
 
@@ -269,7 +285,7 @@ export default function DashboardPage() {
                   Proyección Mensual
                 </span>
                 <span className="text-xl font-bold text-white">
-                  +${yieldData ? Number(yieldData.projectedMonthlyYield).toLocaleString('es-AR', { minimumFractionDigits: 2 }) : '0,00'}
+                  +${Number(yieldData?.estimatedMonthlyYield ?? yieldData?.projectedMonthlyYield ?? 0).toLocaleString('es-AR', { minimumFractionDigits: 2 })}
                 </span>
               </div>
             </div>
@@ -332,7 +348,7 @@ export default function DashboardPage() {
                 </div>
 
                 <div className="flex-1 space-y-2 w-full">
-                  {stats?.spendingByCategory?.map((item) => (
+                  {spendingList.map((item) => (
                     <div key={item.category} className="flex items-center justify-between text-xs">
                       <div className="flex items-center gap-2">
                         <span
@@ -342,7 +358,7 @@ export default function DashboardPage() {
                         <span className="text-slate-300">{CATEGORY_LABELS[item.category] || item.category}</span>
                       </div>
                       <span className="font-semibold text-white">
-                        {Number(item.percentage).toFixed(1)}% (${Number(item.total).toLocaleString('es-AR')})
+                        {Number(item.percentage || 0).toFixed(1)}% (${Number(item.total || 0).toLocaleString('es-AR')})
                       </span>
                     </div>
                   ))}
@@ -357,8 +373,8 @@ export default function DashboardPage() {
           </div>
 
           <div className="pt-4 border-t border-slate-800 flex justify-between items-center text-xs text-slate-400">
-            <span>Total Egresos: <strong className="text-rose-400 font-semibold">${stats ? Number(stats.expenses).toLocaleString('es-AR') : '0'}</strong></span>
-            <span>Ahorro Neto: <strong className="text-emerald-400 font-semibold">${stats ? Number(stats.netSavings).toLocaleString('es-AR') : '0'}</strong></span>
+            <span>Total Egresos: <strong className="text-rose-400 font-semibold">${Number(totalExpenses || 0).toLocaleString('es-AR')}</strong></span>
+            <span>Ahorro Neto: <strong className="text-emerald-400 font-semibold">${Number(netSavings || 0).toLocaleString('es-AR')}</strong></span>
           </div>
         </div>
       </div>
@@ -380,6 +396,21 @@ export default function DashboardPage() {
           <div className="divide-y divide-slate-800/80">
             {recentTransactions.map((tx) => {
               const isIncome = tx.type === 'DEPOSIT' || tx.type === 'TRANSFER_RECEIVED' || tx.type === 'YIELD';
+
+              const getTxTitle = () => {
+                if (tx.type === 'TRANSFER_RECEIVED') {
+                  const sender = tx.transfer?.senderWallet?.user?.name || tx.transfer?.senderWallet?.alias;
+                  return sender ? `De: ${sender}` : 'Transferencia Recibida';
+                }
+                if (tx.type === 'TRANSFER_SENT') {
+                  const receiver = tx.transfer?.receiverWallet?.user?.name || tx.transfer?.receiverWallet?.alias;
+                  return receiver ? `Para: ${receiver}` : 'Transferencia Enviada';
+                }
+                if (tx.type === 'YIELD') return 'Rendimiento Diario (35%)';
+                if (tx.type === 'DEPOSIT') return 'Depósito en Billetera';
+                return CATEGORY_LABELS[tx.category] || tx.category;
+              };
+
               return (
                 <div key={tx.id} className="py-3.5 flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -392,9 +423,10 @@ export default function DashboardPage() {
                     </div>
                     <div>
                       <span className="text-sm font-semibold text-white block">
-                        {CATEGORY_LABELS[tx.category] || tx.category}
+                        {getTxTitle()}
                       </span>
                       <span className="text-[11px] text-slate-400 block">
+                        {CATEGORY_LABELS[tx.category] || tx.category} &bull;{' '}
                         {new Date(tx.createdAt).toLocaleDateString('es-AR', {
                           day: '2-digit',
                           month: 'short',
