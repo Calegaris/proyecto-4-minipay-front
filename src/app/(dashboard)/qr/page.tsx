@@ -22,6 +22,23 @@ import { QRCodeSVG } from 'qrcode.react';
 import { Scanner } from '@yudiel/react-qr-scanner';
 import { toast } from 'sonner';
 
+function parseMoneyInput(val: string): number {
+  if (!val) return 0;
+  let str = val.trim();
+  if (str.includes('.') && str.includes(',')) {
+    str = str.replace(/\./g, '').replace(',', '.');
+  } else if (str.includes('.')) {
+    const parts = str.split('.');
+    if (parts.length > 2 || (parts.length === 2 && parts[1].length === 3)) {
+      str = str.replace(/\./g, '');
+    }
+  } else if (str.includes(',')) {
+    str = str.replace(',', '.');
+  }
+  const num = parseFloat(str);
+  return isNaN(num) ? 0 : num;
+}
+
 function QrHubContent() {
   const searchParams = useSearchParams();
   const { wallet, refreshWallet, refreshUser } = useAuth();
@@ -68,8 +85,8 @@ function QrHubContent() {
   // Manejador Generar QR
   const handleGenerateQr = async (e: React.FormEvent) => {
     e.preventDefault();
-    const numAmount = parseFloat(chargeAmount);
-    if (isNaN(numAmount) || numAmount <= 0) {
+    const numAmount = parseMoneyInput(chargeAmount);
+    if (numAmount <= 0) {
       toast.error('Ingresa un monto válido para cobrar');
       return;
     }
@@ -78,14 +95,15 @@ function QrHubContent() {
       setIsGenerating(true);
       const { data } = await api.post<QrGenerateResponse>('/transfers/qr/generate', {
         amount: numAmount,
-        description: chargeDescription.trim() || undefined,
+        concept: chargeDescription.trim() || undefined,
       });
 
       setGeneratedQr(data);
       setSecondsRemaining(data.expiresInSeconds || 900);
       toast.success('¡Código QR generado con éxito!');
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Error al generar código QR');
+      const msg = err.response?.data?.message || 'Error al generar código QR';
+      toast.error(typeof msg === 'string' ? msg : JSON.stringify(msg));
     } finally {
       setIsGenerating(false);
     }
@@ -101,11 +119,33 @@ function QrHubContent() {
 
     try {
       setIsDecoding(true);
-      const { data } = await api.post<{ valid: boolean; payload: QrPayload }>('/transfers/qr/decode', {
+      const { data } = await api.post<any>('/transfers/qr/decode', {
         qrCode: cleanCode,
       });
 
-      setDecodedPayload(data.payload);
+      if (data.valid === false) {
+        if (data.alreadyPaid) {
+          toast.error('Este código QR ya fue cobrado anteriormente.');
+        } else if (data.expired) {
+          toast.error('Este código QR ha expirado.');
+        } else {
+          toast.error('Código QR no válido o expirado.');
+        }
+        return;
+      }
+
+      const normalized: QrPayload = {
+        qrId: data.qrId,
+        receiverName: data.recipient?.name || data.receiverName || 'Usuario',
+        receiverAlias: data.recipient?.alias || data.receiverAlias || '',
+        receiverCvu: data.recipient?.cvu || data.receiverCvu || '',
+        amount: Number(data.amount || 0),
+        description: data.concept || data.description || '',
+        category: data.category,
+        expiresAt: data.expiresAt,
+      };
+
+      setDecodedPayload(normalized);
       setScannedCode(cleanCode);
       setUseCamera(false);
       toast.success('¡Código QR verificado y válido!');
@@ -126,7 +166,6 @@ function QrHubContent() {
       setIsPaying(true);
       await api.post('/transfers/qr/pay', {
         qrCode: scannedCode,
-        category: payCategory,
       });
 
       setPaymentSuccess(true);
@@ -367,13 +406,12 @@ function QrHubContent() {
                     $
                   </span>
                   <input
-                    type="number"
-                    min="1"
-                    step="any"
+                    type="text"
+                    inputMode="decimal"
                     value={chargeAmount}
                     onChange={(e) => setChargeAmount(e.target.value)}
                     required
-                    placeholder="0,00"
+                    placeholder="0.00"
                     className="w-full pl-9 pr-4 py-3 bg-slate-900 border border-slate-700/80 rounded-xl text-white font-extrabold text-2xl focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                   />
                 </div>
@@ -421,10 +459,12 @@ function QrHubContent() {
 
               <div className="space-y-1">
                 <span className="text-2xl font-extrabold text-white block">
-                  ${Number(generatedQr.payload.amount).toLocaleString('es-AR', { minimumFractionDigits: 2 })} ARS
+                  ${Number(generatedQr.qrData?.amount ?? generatedQr.payload?.amount ?? 0).toLocaleString('es-AR', { minimumFractionDigits: 2 })} ARS
                 </span>
-                {generatedQr.payload.description && (
-                  <span className="text-xs text-slate-400 block">{generatedQr.payload.description}</span>
+                {(generatedQr.qrData?.concept || generatedQr.payload?.description) && (
+                  <span className="text-xs text-slate-400 block">
+                    {generatedQr.qrData?.concept || generatedQr.payload?.description}
+                  </span>
                 )}
                 <span className="text-[11px] text-slate-500 block">
                   Para cobrar en tu cuenta: {wallet?.alias}

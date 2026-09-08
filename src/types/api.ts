@@ -159,21 +159,37 @@ export interface YieldSummary {
 }
 
 // --- PAGOS QR ---
+export interface QrData {
+  qrId: string;
+  recipientWalletId?: string;
+  recipientCvu?: string;
+  recipientAlias?: string;
+  recipientName?: string;
+  amount: number;
+  concept?: string;
+  category?: TransactionCategory;
+  expiresAt: string;
+}
+
 export interface QrPayload {
   qrId: string;
-  receiverWalletId: string;
-  receiverName: string;
-  receiverAlias: string;
-  receiverCvu: string;
+  receiverWalletId?: string;
+  receiverName?: string;
+  receiverAlias?: string;
+  receiverCvu?: string;
   amount: number;
-  description: string;
+  description?: string;
+  concept?: string;
+  category?: TransactionCategory;
   expiresAt: string;
 }
 
 export interface QrGenerateResponse {
   qrCode: string; // Token firmado con HMAC-SHA256
-  payload: QrPayload;
-  expiresInSeconds: number;
+  qrData?: QrData;
+  payload?: QrPayload;
+  expiresAt?: string;
+  expiresInSeconds?: number;
 }
 
 // --- AUTH PAYLOADS & RESPONSES ---
