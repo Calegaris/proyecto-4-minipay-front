@@ -279,11 +279,23 @@ function QrHubContent() {
                 <div className="overflow-hidden rounded-2xl border border-indigo-500/40 bg-black aspect-square max-w-sm mx-auto relative">
                   <Scanner
                     onScan={(result) => {
-                      if (result && result.length > 0) {
+                      if (result && result.length > 0 && result[0].rawValue) {
                         handleDecodeQr(result[0].rawValue);
                       }
                     }}
-                    onError={(error) => console.log('Scanner error:', error)}
+                    onError={(error: any) => {
+                      console.error('Scanner error:', error);
+                      toast.error('Asegúrate de permitir el acceso a la cámara en los ajustes de tu navegador.');
+                    }}
+                    constraints={{
+                      facingMode: 'environment',
+                    }}
+                    components={{
+                      finder: true,
+                    }}
+                    styles={{
+                      container: { width: '100%', height: '100%' },
+                    }}
                   />
                   <div className="absolute inset-x-0 bottom-3 text-center pointer-events-none">
                     <span className="bg-black/80 text-white text-[10px] px-3 py-1 rounded-full">
