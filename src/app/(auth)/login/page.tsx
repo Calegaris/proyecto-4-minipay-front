@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
-import { Mail, Lock, Eye, EyeOff, ArrowRight, Loader2, Sparkles } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, ArrowRight, Loader2 } from 'lucide-react';
 
 export default function LoginPage() {
   const { login, isLoading } = useAuth();
@@ -18,11 +18,6 @@ export default function LoginPage() {
     setIsSubmitting(true);
     await login(email, password);
     setIsSubmitting(false);
-  };
-
-  const handleQuickLogin = (demoEmail: string) => {
-    setEmail(demoEmail);
-    setPassword('Password123!');
   };
 
   return (
@@ -97,33 +92,7 @@ export default function LoginPage() {
         </button>
       </form>
 
-      {/* Demo Credentials Quick Fill */}
-      <div className="mt-8 pt-6 border-t border-slate-800">
-        <div className="flex items-center gap-2 mb-3 text-xs font-semibold text-indigo-400">
-          <Sparkles className="w-4 h-4" />
-          <span>Acceso Rápido de Prueba (Demo)</span>
-        </div>
-        <div className="grid grid-cols-2 gap-2">
-          <button
-            type="button"
-            onClick={() => handleQuickLogin('lucas@minipay.com')}
-            className="p-2.5 bg-slate-800/80 hover:bg-slate-750 border border-slate-700 rounded-xl text-left text-xs transition-colors cursor-pointer"
-          >
-            <span className="font-semibold text-white block">Lucas Dev</span>
-            <span className="text-slate-400 text-[10px] block truncate">lucas@minipay.com</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => handleQuickLogin('juan@minipay.com')}
-            className="p-2.5 bg-slate-800/80 hover:bg-slate-750 border border-slate-700 rounded-xl text-left text-xs transition-colors cursor-pointer"
-          >
-            <span className="font-semibold text-white block">Juan Perez</span>
-            <span className="text-slate-400 text-[10px] block truncate">juan@minipay.com</span>
-          </button>
-        </div>
-      </div>
-
-      <div className="mt-6 text-center text-sm text-slate-400">
+      <div className="mt-8 pt-6 border-t border-slate-800 text-center text-sm text-slate-400">
         ¿No tienes una cuenta?{' '}
         <Link href="/register" className="text-indigo-400 hover:text-indigo-300 font-semibold transition-colors">
           Regístrate gratis
