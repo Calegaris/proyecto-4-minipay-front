@@ -28,6 +28,24 @@ const CATEGORIES: { value: TransactionCategory; label: string; icon: string }[] 
   { value: 'OTHER', label: 'Otros Gastos', icon: '📦' },
 ];
 
+function parseMoneyInput(val: string): number {
+  if (!val) return 0;
+  // Limpiar puntos de miles si existen y unificar comas/puntos decimales
+  let str = val.trim();
+  if (str.includes('.') && str.includes(',')) {
+    str = str.replace(/\./g, '').replace(',', '.');
+  } else if (str.includes('.')) {
+    const parts = str.split('.');
+    if (parts.length > 2 || (parts.length === 2 && parts[1].length === 3)) {
+      str = str.replace(/\./g, '');
+    }
+  } else if (str.includes(',')) {
+    str = str.replace(',', '.');
+  }
+  const num = parseFloat(str);
+  return isNaN(num) ? 0 : num;
+}
+
 function TransfersContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -89,14 +107,14 @@ function TransfersContent() {
 
   const handleInitiateTransfer = (e: React.FormEvent) => {
     e.preventDefault();
-    const numAmount = parseFloat(amount);
+    const numAmount = parseMoneyInput(amount);
 
     if (!recipientInput.trim()) {
       toast.error('Ingresa el Alias, CVU o Email del destinatario');
       return;
     }
 
-    if (isNaN(numAmount) || numAmount <= 0) {
+    if (numAmount <= 0) {
       toast.error('El monto debe ser mayor a 0');
       return;
     }
@@ -110,7 +128,7 @@ function TransfersContent() {
   };
 
   const handleConfirmTransfer = async () => {
-    const numAmount = parseFloat(amount);
+    const numAmount = parseMoneyInput(amount);
     const trimmedRecipient = recipientInput.trim();
 
     // Determinar tipo de destinatario para el DTO
@@ -336,13 +354,12 @@ function TransfersContent() {
                 $
               </span>
               <input
-                type="number"
-                min="1"
-                step="any"
+                type="text"
+                inputMode="decimal"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 required
-                placeholder="0,00"
+                placeholder="0.00"
                 className="w-full pl-9 pr-4 py-3.5 bg-slate-900 border border-slate-700/80 rounded-xl text-white font-extrabold text-2xl focus:ring-2 focus:ring-indigo-500 focus:outline-none"
               />
             </div>
@@ -483,7 +500,7 @@ function TransfersContent() {
               <div className="flex justify-between">
                 <span className="text-slate-400">Monto a enviar:</span>
                 <span className="font-bold text-emerald-400 text-sm">
-                  ${parseFloat(amount).toLocaleString('es-AR', { minimumFractionDigits: 2 })} ARS
+                  ${parseMoneyInput(amount).toLocaleString('es-AR', { minimumFractionDigits: 2 })} ARS
                 </span>
               </div>
               <div className="flex justify-between">
@@ -493,7 +510,7 @@ function TransfersContent() {
               <div className="flex justify-between border-t border-slate-800 pt-2">
                 <span className="text-slate-400">Saldo restante:</span>
                 <span className="text-slate-300 font-mono">
-                  ${wallet ? (Number(wallet.balance) - parseFloat(amount)).toLocaleString('es-AR', { minimumFractionDigits: 2 }) : '0'}
+                  ${wallet ? Math.max(0, Number(wallet.balance) - parseMoneyInput(amount)).toLocaleString('es-AR', { minimumFractionDigits: 2 }) : '0,00'}
                 </span>
               </div>
             </div>
