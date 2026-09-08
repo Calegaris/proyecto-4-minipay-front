@@ -95,6 +95,24 @@ export default function ActivityPage() {
     }
   };
 
+  const getTransactionTitle = (tx: Transaction) => {
+    if (tx.type === 'TRANSFER_RECEIVED') {
+      const sender = tx.transfer?.senderWallet?.user?.name || tx.transfer?.senderWallet?.alias;
+      return sender ? `De: ${sender}` : 'Transferencia Recibida';
+    }
+    if (tx.type === 'TRANSFER_SENT') {
+      const receiver = tx.transfer?.receiverWallet?.user?.name || tx.transfer?.receiverWallet?.alias;
+      return receiver ? `Para: ${receiver}` : 'Transferencia Enviada';
+    }
+    if (tx.type === 'YIELD') {
+      return 'Rendimiento Diario (35% TNA)';
+    }
+    if (tx.type === 'DEPOSIT') {
+      return 'Depósito de Fondos';
+    }
+    return tx.category;
+  };
+
   return (
     <div className="space-y-6">
       {/* Encabezado */}
@@ -182,9 +200,13 @@ export default function ActivityPage() {
                     </div>
                     <div>
                       <span className="font-semibold text-white text-sm block group-hover:text-indigo-300 transition-colors">
-                        {tx.category}
+                        {getTransactionTitle(tx)}
                       </span>
                       <div className="flex items-center gap-2 text-xs text-slate-400 mt-0.5">
+                        <span className="text-[11px] text-indigo-400 font-medium">
+                          {tx.category}
+                        </span>
+                        <span>&bull;</span>
                         <span className="font-mono text-[11px] text-slate-400">
                           {tx.type}
                         </span>
@@ -286,6 +308,41 @@ export default function ActivityPage() {
                 <span className="text-slate-400">Tipo:</span>
                 <span className="font-semibold text-white">{selectedTx.type}</span>
               </div>
+
+              {selectedTx.type === 'TRANSFER_RECEIVED' && selectedTx.transfer?.senderWallet && (
+                <>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Emisor:</span>
+                    <span className="font-semibold text-emerald-400">
+                      {selectedTx.transfer.senderWallet.user?.name || selectedTx.transfer.senderWallet.user?.email || 'Usuario'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Alias Emisor:</span>
+                    <span className="font-mono text-indigo-300">
+                      {selectedTx.transfer.senderWallet.alias}
+                    </span>
+                  </div>
+                </>
+              )}
+
+              {selectedTx.type === 'TRANSFER_SENT' && selectedTx.transfer?.receiverWallet && (
+                <>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Destinatario:</span>
+                    <span className="font-semibold text-rose-400">
+                      {selectedTx.transfer.receiverWallet.user?.name || selectedTx.transfer.receiverWallet.user?.email || 'Usuario'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Alias Destinatario:</span>
+                    <span className="font-mono text-indigo-300">
+                      {selectedTx.transfer.receiverWallet.alias}
+                    </span>
+                  </div>
+                </>
+              )}
+
               <div className="flex justify-between">
                 <span className="text-slate-400">Rubro:</span>
                 <span className="text-indigo-400 font-semibold">{selectedTx.category}</span>
