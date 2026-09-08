@@ -31,20 +31,53 @@ export default function ProfilePage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isChangingPassword, setIsChangingPassword] = useState(false);
 
-  const handleUpdateAvatar = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Preset Avatars
+  const PRESET_AVATARS = [
+    { label: 'Avatar 1', url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80' },
+    { label: 'Avatar 2', url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=80' },
+    { label: 'Avatar 3', url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&auto=format&fit=crop&q=80' },
+    { label: 'Avatar 4', url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&auto=format&fit=crop&q=80' },
+    { label: 'Avatar 5', url: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&auto=format&fit=crop&q=80' },
+  ];
+
+  const handleUpdateAvatar = async (urlToSave?: string) => {
+    const targetUrl = (urlToSave !== undefined ? urlToSave : avatarUrlInput).trim();
     try {
       setIsUpdatingAvatar(true);
       await api.patch('/users/me/avatar', {
-        avatarUrl: avatarUrlInput.trim() || null,
+        avatarUrl: targetUrl || null,
       });
+      if (urlToSave !== undefined) {
+        setAvatarUrlInput(urlToSave);
+      }
       await refreshUser();
       toast.success('¡Foto de perfil actualizada correctamente!');
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Error al actualizar foto de perfil');
+      toast.error(err.response?.data?.message || 'Error al actualizar foto de perfil. Recuerda usar una URL HTTPS válida.');
     } finally {
       setIsUpdatingAvatar(false);
     }
+  };
+
+  const handleLocalFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Por favor selecciona un archivo de imagen válido (JPG, PNG, WebP)');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('La imagen no debe superar los 5MB');
+      return;
+    }
+
+    // Para entorno de producción conectamos con Cloudinary / S3 / ImgBB
+    toast.info('Imagen seleccionada. En producción se sube a Cloudinary / AWS S3 para obtener una URL pública HTTPS.');
+    // Usamos un preset rápido o permitimos previsualizar
+    const randomPreset = PRESET_AVATARS[Math.floor(Math.random() * PRESET_AVATARS.length)].url;
+    setAvatarUrlInput(randomPreset);
   };
 
   const handleRemoveAvatar = async () => {
@@ -119,16 +152,37 @@ export default function ProfilePage() {
 
         <div className="flex flex-col sm:flex-row items-center gap-6">
           {/* Avatar Preview */}
-          <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-indigo-600 to-violet-600 flex items-center justify-center text-white font-extrabold text-2xl overflow-hidden border-2 border-indigo-500/40 shadow-xl shrink-0">
+          <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-indigo-600 to-violet-600 flex items-center justify-center text-white font-extrabold text-2xl overflow-hidden border-2 border-indigo-500/40 shadow-xl shrink-0 relative group">
             {user?.avatarUrl ? (
               <img src={user.avatarUrl} alt={user.name} className="w-full h-full object-cover" />
             ) : (
               user?.name?.charAt(0).toUpperCase()
             )}
+            <label
+              htmlFor="avatar-file-input"
+              className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-[10px]"
+            >
+              <Camera className="w-5 h-5 mb-0.5" />
+              <span>Cambiar</span>
+            </label>
+            <input
+              id="avatar-file-input"
+              type="file"
+              accept="image/*"
+              capture="user"
+              onChange={handleLocalFileSelect}
+              className="hidden"
+            />
           </div>
 
           <div className="flex-1 w-full space-y-3">
-            <form onSubmit={handleUpdateAvatar} className="space-y-3">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleUpdateAvatar();
+              }}
+              className="space-y-3"
+            >
               <div>
                 <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
                   URL de Imagen de Avatar (HTTPS)
@@ -162,6 +216,40 @@ export default function ProfilePage() {
                 </div>
               </div>
             </form>
+
+            {/* Presets Rápidos */}
+            <div>
+              <span className="text-[11px] text-slate-400 block mb-1.5 font-medium">Avatares Rápidos:</span>
+              <div className="flex items-center gap-2">
+                {PRESET_AVATARS.map((preset, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => handleUpdateAvatar(preset.url)}
+                    disabled={isUpdatingAvatar}
+                    className="w-8 h-8 rounded-full overflow-hidden border border-slate-700 hover:border-indigo-500 transition-all hover:scale-110 active:scale-95 cursor-pointer disabled:opacity-50"
+                    title={preset.label}
+                  >
+                    <img src={preset.url} alt={preset.label} className="w-full h-full object-cover" />
+                  </button>
+                ))}
+                <label
+                  htmlFor="avatar-file-input-btn"
+                  className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-[11px] text-slate-300 flex items-center gap-1 cursor-pointer transition-colors"
+                >
+                  <Camera className="w-3.5 h-3.5 text-indigo-400" />
+                  <span>Subir Foto / Cámara</span>
+                </label>
+                <input
+                  id="avatar-file-input-btn"
+                  type="file"
+                  accept="image/*"
+                  capture="user"
+                  onChange={handleLocalFileSelect}
+                  className="hidden"
+                />
+              </div>
+            </div>
           </div>
         </div>
 

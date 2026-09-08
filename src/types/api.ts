@@ -108,23 +108,54 @@ export interface CategorySpending {
   category: TransactionCategory;
   total: number;
   percentage: number;
+  percentageFormatted?: string;
 }
 
-export interface WalletStats {
-  period: string; // "YYYY-MM"
-  income: number;
-  expenses: number;
-  netSavings: number;
+export interface MonthlySummary {
+  month: string;
+  totalDeposited: number;
+  totalTransferred: number;
+  totalReceived: number;
+  netCashFlow: number;
+  transactionCount: number;
   spendingByCategory: CategorySpending[];
 }
 
-export interface YieldSummary {
-  annualRatePercentage: number; // 35.0
+export interface WalletStats {
   currentBalance: number;
-  todayEarnedYield: number;
-  projectedMonthlyYield: number;
-  projectedAnnualYield: number;
-  yieldHistory: Transaction[];
+  currency: string;
+  monthlySummary?: MonthlySummary;
+  allTimeSummary?: {
+    totalDeposited: number;
+    totalTransferred: number;
+    totalReceived: number;
+    netCashFlow: number;
+    transactionCount: number;
+  };
+  // Fallbacks opcionales para retrocompatibilidad
+  period?: string;
+  income?: number;
+  expenses?: number;
+  netSavings?: number;
+  spendingByCategory?: CategorySpending[];
+}
+
+export interface YieldSummary {
+  currentBalance: number;
+  currency?: string;
+  tna?: string;
+  dailyRatePercentage?: string;
+  totalYieldsEarnedAllTime?: number;
+  totalYieldOperationsCount?: number;
+  estimatedDailyYield?: number;
+  estimatedMonthlyYield?: number;
+  estimatedAnnualYield?: number;
+  // Fallbacks opcionales para retrocompatibilidad
+  annualRatePercentage?: number;
+  todayEarnedYield?: number;
+  projectedMonthlyYield?: number;
+  projectedAnnualYield?: number;
+  yieldHistory?: Transaction[];
 }
 
 // --- PAGOS QR ---
